@@ -1,19 +1,15 @@
-// src/users/users.service.ts
-
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/services/prisma.service';
 import { User, Prisma } from '@prisma/client';
 import * as argon2 from 'argon2';
 import { JwtService } from '@nestjs/jwt';
 import { UserEntity } from '../entities/auth.entity';
-import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
-    private configService: ConfigService,
   ) {}
 
   /**
@@ -79,6 +75,66 @@ export class AuthService {
     password: string,
   ): Promise<{ accessToken: string; user: UserEntity }> {
     const user = await this.validateUser(email, password);
+
+    const payload = { sub: user.id, email: user.email };
+
+    try {
+      const accessToken = this.jwtService.sign(payload);
+      return { accessToken, user };
+    } catch (error) {
+      throw new UnauthorizedException(error.message);
+    }
+  }
+
+  /**
+   * Setup Biometric Key.
+   * @param email - User email.
+   * @param biometricKey - User biometric data.
+   * @returns Object containing accessToken and user data.
+   * @throws UnauthorizedException if login fails.
+   */
+  async setupBiometricKey(
+    email: string,
+    biometricKey: string,
+  ): Promise<UserEntity> {
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    return this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        biometricKey,
+      },
+    }) as unknown as UserEntity;
+  }
+
+  /**
+   * Biometric Login.
+   * @param email - User email.
+   * @param biometricKey - User biometric data.
+   * @returns Object containing accessToken and user data.
+   * @throws UnauthorizedException if login fails.
+   */
+  async biometricLogin(
+    email: string,
+    biometricKey: string,
+  ): Promise<{ accessToken: string; user: UserEntity }> {
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    if (user.biometricKey !== biometricKey) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
 
     const payload = { sub: user.id, email: user.email };
 

@@ -2,6 +2,16 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
+input BiometricLoginInput {
+  biometricKey: String!
+  email: String!
+}
+
+input BiometricSetupInput {
+  biometricKey: String!
+  email: String!
+}
+
 input CreateUserInput {
   biometricKey: String
   email: String!
@@ -24,8 +34,10 @@ type LoginResponse {
 }
 
 type Mutation {
+  biometricLogin(biometricLogin: BiometricLoginInput!): LoginResponse!
   createUser(createUserInput: CreateUserInput!): UserEntity!
   login(loginInput: LoginInput!): LoginResponse!
+  setupBiometricKey(setupBiometricKey: BiometricSetupInput!): UserEntity!
 }
 
 type Query {
