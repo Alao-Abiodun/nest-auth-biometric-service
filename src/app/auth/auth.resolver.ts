@@ -4,6 +4,10 @@ import { Resolver, Mutation, Args, Query } from '@nestjs/graphql';
 import { AuthService } from './services/auth.service';
 import { UserEntity } from './entities/auth.entity';
 import { CreateUserInput } from './dtos/create-user.dto';
+import { LoginInput } from './dtos/login-user.dto';
+import { LoginResponse } from './dtos/login-response.dto';
+import { UnauthorizedException, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from './guards/jwt-auth-guard';
 // import { UpdateUserInput } from './dtos/update-user.dto';
 // import { Prisma } from '@prisma/client';
 
@@ -15,6 +19,7 @@ export class AuthResolver {
    * Query to fetch all users.
    * @returns Array of UserEntity.
    */
+  @UseGuards(JwtAuthGuard)
   @Query(() => [UserEntity], { name: 'users' })
   async getUsers(): Promise<UserEntity[]> {
     return this.authService.findAllUsers();
@@ -42,11 +47,22 @@ export class AuthResolver {
    * @returns UserEntity.
    * @throws Error if user is not found or password is incorrect.
    */
-  @Mutation(() => UserEntity)
+  @Mutation(() => LoginResponse)
   async login(
-    @Args('email') email: string,
-    @Args('password') password: string,
-  ): Promise<UserEntity> {
-    return this.authService.login(email, password);
+    @Args('loginInput') loginInput: LoginInput,
+  ): Promise<LoginResponse> {
+    try {
+      const { accessToken, user } = await this.authService.login(
+        loginInput.email,
+        loginInput.password,
+      );
+      return {
+        accessToken,
+        user,
+      };
+    } catch (error) {
+      console.log('Error:', error);
+      throw new UnauthorizedException(error.message);
+    }
   }
 }
