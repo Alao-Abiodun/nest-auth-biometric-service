@@ -114,37 +114,6 @@ describe('AuthService', () => {
       expect(prismaService.user.create).not.toHaveBeenCalled();
     });
 
-    // it('should throw an error if email already exists', async () => {
-    //   const userInput = {
-    //     email: 'john.doe@example.com',
-    //     password: 'password123',
-    //   };
-
-    //   const hashedPassword = 'hashedPassword123';
-    //   (argon2.hash as jest.Mock).mockResolvedValue(hashedPassword);
-
-    //   // Create a mocked Prisma P2002 error
-    //   const prismaError = new Error(
-    //     'Unique constraint failed on the fields: (`email`)',
-    //   );
-    //   (prismaError as any).code = 'P2002';
-    //   (prismaError as any).meta = { target: ['email'] };
-
-    //   (prismaService.user.create as jest.Mock).mockRejectedValue(prismaError);
-
-    //   await expect(authService.createUser(userInput)).rejects.toThrow(
-    //     'Email already exists',
-    //   );
-
-    //   expect(argon2.hash).toHaveBeenCalledWith(userInput.password);
-    //   expect(prismaService.user.create).toHaveBeenCalledWith({
-    //     data: {
-    //       email: userInput.email,
-    //       password: hashedPassword,
-    //     },
-    //   });
-    // });
-
     it('should throw an error if email already exists', async () => {
       const userInput = {
         email: 'john.doe@example.com',
