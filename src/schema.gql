@@ -4,7 +4,6 @@
 
 input BiometricLoginInput {
   biometricKey: String!
-  email: String!
 }
 
 input BiometricSetupInput {

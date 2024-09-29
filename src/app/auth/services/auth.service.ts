@@ -1,4 +1,9 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
+import * as crypto from 'crypto';
 import { PrismaService } from '../../prisma/services/prisma.service';
 import { User, Prisma } from '@prisma/client';
 import * as argon2 from 'argon2';
@@ -87,11 +92,7 @@ export class AuthService {
   }
 
   /**
-   * Setup Biometric Key.
-   * @param email - User email.
-   * @param biometricKey - User biometric data.
-   * @returns Object containing accessToken and user data.
-   * @throws UnauthorizedException if login fails.
+   * Sets up a biometric key for a user.
    */
   async setupBiometricKey(
     email: string,
@@ -105,42 +106,56 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    return this.prisma.user.update({
-      where: { id: user.id },
-      data: {
-        biometricKey,
-      },
-    }) as unknown as UserEntity;
+    // Hash the biometricKey using SHA-256
+    const biometricKeyHash = crypto
+      .createHash('sha256')
+      .update(biometricKey)
+      .digest('hex');
+
+    try {
+      const updatedUser = await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          biometricKey: biometricKeyHash,
+        },
+      });
+      return updatedUser as unknown as UserEntity;
+    } catch (error: any) {
+      if (
+        error.code === 'P2002' &&
+        error.meta?.target?.includes('biometricKeyHash')
+      ) {
+        throw new ConflictException('Biometric key is already in use');
+      }
+      throw error;
+    }
   }
 
   /**
-   * Biometric Login.
-   * @param email - User email.
-   * @param biometricKey - User biometric data.
-   * @returns Object containing accessToken and user data.
-   * @throws UnauthorizedException if login fails.
+   * Logs in a user using their biometric key.
    */
   async biometricLogin(
-    email: string,
     biometricKey: string,
   ): Promise<{ accessToken: string; user: UserEntity }> {
-    const user = await this.prisma.user.findUnique({
-      where: { email },
+    // Hash the incoming biometricKey using SHA-256
+    const biometricKeyHash: any = crypto
+      .createHash('sha256')
+      .update(biometricKey)
+      .digest('hex');
+
+    const user = await this.prisma.user.findFirst({
+      where: { biometricKey: biometricKeyHash },
     });
 
     if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
-
-    if (user.biometricKey !== biometricKey) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException('Invalid biometric key.');
     }
 
     const payload = { sub: user.id, email: user.email };
 
     try {
       const accessToken = this.jwtService.sign(payload);
-      return { accessToken, user };
+      return { accessToken, user: user as unknown as UserEntity };
     } catch (error) {
       throw new UnauthorizedException(error.message);
     }
@@ -156,6 +171,4 @@ export class AuthService {
       where: { id },
     });
   }
-
-  // Add more CRUD methods as needed
 }

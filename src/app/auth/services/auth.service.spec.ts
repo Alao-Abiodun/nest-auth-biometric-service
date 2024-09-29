@@ -1,3 +1,5 @@
+// src/app/auth/services/auth.service.spec.ts
+
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../../prisma/services/prisma.service';
@@ -19,7 +21,7 @@ interface MockPrismaService {
   };
 }
 
-interface MockJwtService extends Partial<JwtService> {
+interface MockJwtService {
   sign: jest.Mock;
 }
 
@@ -69,7 +71,6 @@ describe('AuthService', () => {
       const userInput = {
         email: 'john.doe@example.com',
         password: 'password123',
-        name: 'John Doe',
       };
 
       const hashedPassword = 'hashedPassword123';
@@ -84,7 +85,7 @@ describe('AuthService', () => {
         updatedAt: new Date(),
       };
 
-      // Cast prismaService.user.create as jest.Mock
+      // Cast prismaService.user.create as jest.Mock and mock resolved value
       (prismaService.user.create as jest.Mock).mockResolvedValue(createdUser);
 
       const result = await authService.createUser(userInput);
@@ -94,7 +95,6 @@ describe('AuthService', () => {
         data: {
           email: userInput.email,
           password: hashedPassword,
-          name: userInput.name,
         },
       });
       expect(result).toEqual(createdUser);
@@ -103,7 +103,7 @@ describe('AuthService', () => {
     it('should throw an error if password is missing', async () => {
       const userInput = {
         email: 'john.doe@example.com',
-        name: 'John Doe',
+        biometricKey: 'siakekweds',
       } as any; // Casting to any to simulate missing password
 
       await expect(authService.createUser(userInput)).rejects.toThrow(
@@ -118,16 +118,18 @@ describe('AuthService', () => {
       const userInput = {
         email: 'john.doe@example.com',
         password: 'password123',
-        name: 'John Doe',
       };
 
       const hashedPassword = 'hashedPassword123';
       (argon2.hash as jest.Mock).mockResolvedValue(hashedPassword);
 
-      (prismaService.user.create as jest.Mock).mockRejectedValue({
-        code: 'P2002',
-        meta: { target: ['email'] },
-      });
+      // Create a mocked Prisma P2002 error
+      const prismaError = new Error('Email already exists');
+      (prismaError as any).code = 'P2002';
+      (prismaError as any).meta = { target: ['email'] };
+
+      // Mock the rejection with the proper error instance
+      (prismaService.user.create as jest.Mock).mockRejectedValue(prismaError);
 
       await expect(authService.createUser(userInput)).rejects.toThrow(
         'Email already exists',
@@ -138,7 +140,6 @@ describe('AuthService', () => {
         data: {
           email: userInput.email,
           password: hashedPassword,
-          name: userInput.name,
         },
       });
     });
