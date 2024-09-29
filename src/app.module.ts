@@ -20,6 +20,7 @@ import { ConfigModule } from '@nestjs/config';
       autoSchemaFile: join(process.cwd(), 'src/schema.gql'),
       sortSchema: true,
       playground: true,
+      context: ({ req }) => ({ req }),
     }),
   ],
 })

@@ -7,7 +7,6 @@ import * as crypto from 'crypto';
 import { PrismaService } from '../../prisma/services/prisma.service';
 import { User, Prisma } from '@prisma/client';
 import * as argon2 from 'argon2';
-import { JwtService } from '@nestjs/jwt';
 import { UserEntity } from '../entities/auth.entity';
 import { Helper } from 'src/shared/utils/helper';
 
@@ -15,7 +14,6 @@ import { Helper } from 'src/shared/utils/helper';
 export class AuthService {
   constructor(
     private prisma: PrismaService,
-    private jwtService: JwtService,
     private helper: Helper,
   ) {}
 
