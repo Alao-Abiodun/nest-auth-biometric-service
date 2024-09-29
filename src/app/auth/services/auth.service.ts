@@ -9,12 +9,14 @@ import { User, Prisma } from '@prisma/client';
 import * as argon2 from 'argon2';
 import { JwtService } from '@nestjs/jwt';
 import { UserEntity } from '../entities/auth.entity';
+import { Helper } from 'src/shared/utils/helper';
 
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private helper: Helper,
   ) {}
 
   /**
@@ -37,7 +39,7 @@ export class AuthService {
       throw new Error('Password is required');
     }
 
-    const hashedPassword = await argon2.hash(password);
+    const hashedPassword = await this.helper.hash(password);
     return this.prisma.user.create({
       data: {
         ...rest,
@@ -84,7 +86,7 @@ export class AuthService {
     const payload = { sub: user.id, email: user.email };
 
     try {
-      const accessToken = this.jwtService.sign(payload);
+      const accessToken = await this.helper.generateJwtToken(payload);
       return { accessToken, user };
     } catch (error) {
       throw new UnauthorizedException(error.message);
@@ -93,6 +95,10 @@ export class AuthService {
 
   /**
    * Sets up a biometric key for a user.
+   * @param email - User email.
+   * @param biometricKey - User biometric key.
+   * @returns The updated user.
+   * @throws ConflictException if biometric key is already in use.
    */
   async setupBiometricKey(
     email: string,
@@ -102,6 +108,7 @@ export class AuthService {
       where: { email },
     });
 
+    // Check if user exists
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -119,7 +126,7 @@ export class AuthService {
           biometricKey: biometricKeyHash,
         },
       });
-      return updatedUser as unknown as UserEntity;
+      return updatedUser as UserEntity;
     } catch (error: any) {
       if (
         error.code === 'P2002' &&
@@ -154,7 +161,7 @@ export class AuthService {
     const payload = { sub: user.id, email: user.email };
 
     try {
-      const accessToken = this.jwtService.sign(payload);
+      const accessToken = await this.helper.generateJwtToken(payload);
       return { accessToken, user: user as unknown as UserEntity };
     } catch (error) {
       throw new UnauthorizedException(error.message);
