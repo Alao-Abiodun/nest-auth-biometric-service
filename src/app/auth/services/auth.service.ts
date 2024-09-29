@@ -156,6 +156,4 @@ export class AuthService {
       where: { id },
     });
   }
-
-  // Add more CRUD methods as needed
 }
