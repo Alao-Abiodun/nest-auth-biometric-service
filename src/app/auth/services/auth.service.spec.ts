@@ -1,5 +1,3 @@
-// src/app/auth/services/auth.service.spec.ts
-
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../../prisma/services/prisma.service';
@@ -8,37 +6,28 @@ import { UnauthorizedException } from '@nestjs/common';
 import * as argon2 from 'argon2';
 import { User } from '@prisma/client';
 import { UserEntity } from '../entities/auth.entity';
+import { Helper } from '../../../shared/utils/helper';
 
 // Mock the argon2 library
 jest.mock('argon2');
 
-// Define interfaces for mocked services
-interface MockPrismaService {
-  user: {
-    findUnique: jest.Mock;
-    create: jest.Mock;
-    update: jest.Mock;
-  };
-}
-
-interface MockJwtService {
-  sign: jest.Mock;
-}
-
 describe('AuthService', () => {
   let authService: AuthService;
-  let prismaService: MockPrismaService;
-  let jwtService: MockJwtService;
+  let prismaService: Partial<PrismaService>;
+  let jwtService: Partial<JwtService>;
+  let helper: Helper;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
+        Helper,
         {
           provide: PrismaService,
           useValue: {
             user: {
               findUnique: jest.fn(),
+              findFirst: jest.fn(),
               create: jest.fn(),
               update: jest.fn(),
             },
@@ -48,18 +37,21 @@ describe('AuthService', () => {
           provide: JwtService,
           useValue: {
             sign: jest.fn(),
+            verify: jest.fn(),
           },
         },
       ],
     }).compile();
 
     authService = module.get<AuthService>(AuthService);
-    prismaService = module.get<PrismaService>(
-      PrismaService,
-    ) as unknown as MockPrismaService;
-    jwtService = module.get<JwtService>(
-      JwtService,
-    ) as unknown as MockJwtService;
+    prismaService = module.get<PrismaService>(PrismaService);
+    jwtService = module.get<JwtService>(JwtService);
+    helper = module.get<Helper>(Helper);
+
+    // Mock the helper.hash function
+    jest
+      .spyOn(helper, 'hash')
+      .mockImplementation(async (password) => `hashed_${password}`);
   });
 
   afterEach(() => {
@@ -74,7 +66,7 @@ describe('AuthService', () => {
       };
 
       const hashedPassword = 'hashedPassword123';
-      (argon2.hash as jest.Mock).mockResolvedValue(hashedPassword);
+      jest.spyOn(helper, 'hash').mockResolvedValue(hashedPassword);
 
       const createdUser: User = {
         id: 1,
@@ -85,12 +77,12 @@ describe('AuthService', () => {
         updatedAt: new Date(),
       };
 
-      // Cast prismaService.user.create as jest.Mock and mock resolved value
-      (prismaService.user.create as jest.Mock).mockResolvedValue(createdUser);
+      // Mock prismaService.user.create to resolve with createdUser
+      jest.spyOn(prismaService.user, 'create').mockResolvedValue(createdUser);
 
       const result = await authService.createUser(userInput);
 
-      expect(argon2.hash).toHaveBeenCalledWith(userInput.password);
+      expect(helper.hash).toHaveBeenCalledWith(userInput.password);
       expect(prismaService.user.create).toHaveBeenCalledWith({
         data: {
           email: userInput.email,
@@ -110,7 +102,7 @@ describe('AuthService', () => {
         'Password is required',
       );
 
-      expect(argon2.hash).not.toHaveBeenCalled();
+      expect(helper.hash).not.toHaveBeenCalled();
       expect(prismaService.user.create).not.toHaveBeenCalled();
     });
 
@@ -121,21 +113,21 @@ describe('AuthService', () => {
       };
 
       const hashedPassword = 'hashedPassword123';
-      (argon2.hash as jest.Mock).mockResolvedValue(hashedPassword);
+      jest.spyOn(helper, 'hash').mockResolvedValue(hashedPassword);
 
       // Create a mocked Prisma P2002 error
       const prismaError = new Error('Email already exists');
       (prismaError as any).code = 'P2002';
       (prismaError as any).meta = { target: ['email'] };
 
-      // Mock the rejection with the proper error instance
-      (prismaService.user.create as jest.Mock).mockRejectedValue(prismaError);
+      // Mock prismaService.user.create to reject with prismaError
+      jest.spyOn(prismaService.user, 'create').mockRejectedValue(prismaError);
 
       await expect(authService.createUser(userInput)).rejects.toThrow(
         'Email already exists',
       );
 
-      expect(argon2.hash).toHaveBeenCalledWith(userInput.password);
+      expect(helper.hash).toHaveBeenCalledWith(userInput.password);
       expect(prismaService.user.create).toHaveBeenCalledWith({
         data: {
           email: userInput.email,
@@ -162,12 +154,10 @@ describe('AuthService', () => {
         updatedAt: new Date(),
       };
 
-      (argon2.verify as jest.Mock).mockResolvedValue(true);
-      (prismaService.user.findUnique as jest.Mock).mockResolvedValue(user);
-
-      const payload = { sub: user.id, email: user.email };
+      jest.spyOn(prismaService.user, 'findUnique').mockResolvedValue(user);
+      jest.spyOn(argon2, 'verify').mockResolvedValue(true);
       const token = 'jwtToken123';
-      (jwtService.sign as jest.Mock).mockReturnValue(token);
+      jest.spyOn(jwtService, 'sign').mockReturnValue(token);
 
       const result = await authService.login(
         loginInput.email,
@@ -181,10 +171,13 @@ describe('AuthService', () => {
         hashedPassword,
         loginInput.password,
       );
-      expect(jwtService.sign).toHaveBeenCalledWith(payload);
+      expect(jwtService.sign).toHaveBeenCalledWith({
+        sub: user.id,
+        email: user.email,
+      });
       expect(result).toEqual({
         accessToken: token,
-        user: user as unknown as UserEntity, // Adjust if necessary
+        user: user as unknown as UserEntity,
       });
     });
 
@@ -194,7 +187,7 @@ describe('AuthService', () => {
         password: 'password123',
       };
 
-      (prismaService.user.findUnique as jest.Mock).mockResolvedValue(null);
+      jest.spyOn(prismaService.user, 'findUnique').mockResolvedValue(null);
 
       await expect(
         authService.login(loginInput.email, loginInput.password),
@@ -223,8 +216,8 @@ describe('AuthService', () => {
         updatedAt: new Date(),
       };
 
-      (prismaService.user.findUnique as jest.Mock).mockResolvedValue(user);
-      (argon2.verify as jest.Mock).mockResolvedValue(false);
+      jest.spyOn(prismaService.user, 'findUnique').mockResolvedValue(user);
+      jest.spyOn(argon2, 'verify').mockResolvedValue(false);
 
       await expect(
         authService.login(loginInput.email, loginInput.password),
@@ -240,4 +233,6 @@ describe('AuthService', () => {
       expect(jwtService.sign).not.toHaveBeenCalled();
     });
   });
+
+  // Add more tests for other AuthService methods as needed
 });

@@ -8,7 +8,7 @@ import { PrismaService } from '../../prisma/services/prisma.service';
 import { User, Prisma } from '@prisma/client';
 import * as argon2 from 'argon2';
 import { UserEntity } from '../entities/auth.entity';
-import { Helper } from 'src/shared/utils/helper';
+import { Helper } from '../../../shared/utils/helper';
 
 @Injectable()
 export class AuthService {

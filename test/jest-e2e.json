@@ -1,5 +1,5 @@
 {
-  "moduleFileExtensions": ["js", "json", "ts"],
+  "moduleFileExtensions": ["ts", "tsx", "js", "jsx", "json", "node"],
   "rootDir": "src",
   "testEnvironment": "node",
   "testRegex": ".*\\.spec\\.ts$",
