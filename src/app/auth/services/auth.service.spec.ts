@@ -233,6 +233,4 @@ describe('AuthService', () => {
       expect(jwtService.sign).not.toHaveBeenCalled();
     });
   });
-
-  // Add more tests for other AuthService methods as needed
 });
