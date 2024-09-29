@@ -80,19 +80,16 @@ export class AuthResolver {
 
   /**
    * Mutation for user to login using biometric key.
-   * @param email - User email.
-   * @param biometricKey - User biometric key.
-   * @returns UserEntity.
-   * @throws Error if user is not found or biometric key is incorrect.
+   * @param biometricLoginInput - Biometric login data.
+   * @returns LoginResponse containing accessToken and user data.
    */
   @Mutation(() => LoginResponse)
   async biometricLogin(
-    @Args('biometricLogin') biometricLoginInput: BiometricLoginInput,
+    @Args('biometricLogin') biometricLogin: BiometricLoginInput,
   ): Promise<LoginResponse> {
     try {
       const { accessToken, user } = await this.authService.biometricLogin(
-        biometricLoginInput.email,
-        biometricLoginInput.biometricKey,
+        biometricLogin.biometricKey,
       );
       return {
         accessToken,
