@@ -2,6 +2,21 @@
 
 This is a simple project to demonstrate how to use Prisma with NestJS. This project is a simple API that authenticate user for registeration using standard login(email and password) or bio-metric login(finger print). The project is built with NestJS, Prisma, and Postgres.
 
+## Diagram of the project
+![Architecture](./architecture/image.png)
+
+## Features
+- User registration
+- User login
+- Setting up user bio-metric
+- User bio-metric login
+
+## Technologies
+- NestJS
+- Prisma
+- Postgres
+- Jest
+
 ## Project setup
 
 ```bash 
@@ -36,6 +51,16 @@ DATABASE_URL="postgresql://<username>:<password>@localhost:5432/<database-name
 JWT_SECRET
 ```
 
+## Compile and run the project
+
+```bash
+# development
+$ yarn run start
+
+# watch mode
+$ yarn run start:dev
+```
+
 ## Database setup
 
 ```bash
@@ -48,17 +73,89 @@ $ npx prisma generate
 $ npx prisma migrate dev --name init
 ```
 
-
-
-## Compile and run the project
+## Postman collection setup
 
 ```bash
-# development
-$ yarn run start
-
-# watch mode
-$ yarn run start:dev
+# Import the postman collection
+$ <project-directory>/postman-collection.json
 ```
+
+## API Documentation
+
+```bash
+# GraphQL API documentation
+$ http://localhost:3000/graphql
+```
+
+## Test the API
+
+```bash
+# Register a new user using graphql
+$ mutation {
+  createUser(createUserInput: {
+    email: "",
+    password: ""
+  }) {
+    id
+    email
+    biometricKey
+    createdAt
+    updatedAt
+  }
+}
+```
+
+```bash
+
+# Login a user using graphql
+$ mutation {
+  login(loginInput: {
+    email: "",
+    password: ""
+  }) {
+    accessToken
+    user {
+      id
+      email
+      biometricKey
+      createdAt
+      updatedAt
+    }
+  }
+}
+```
+
+```bash
+
+# Set up user bio-metric using graphql
+$ mutation {
+  setupBiometricKey(setupBiometricKey: { biometricKey: "sadfsdasd"
+  }) {
+    id
+    email
+    biometricKey
+    createdAt
+    updatedAt
+  }
+}
+```
+
+```bash
+
+# Login a user using bio-metric using graphql
+$ mutation {
+  biometricLogin(biometricLogin: { biometricKey: "adasfaffd" }) {
+    accessToken
+    user {
+      id
+      email
+    }
+  }
+}
+```
+
+
+
 
 ## Run tests
 
