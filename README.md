@@ -51,6 +51,18 @@ DATABASE_URL="postgresql://<username>:<password>@localhost:5432/<database-name
 JWT_SECRET
 ```
 
+## Docker Setup for Database Postgres
+
+```bash
+# Run the following command to start the postgres database
+$ docker-compose up -d
+```
+
+```bash
+# Run the following command to stop the postgres database
+$ docker-compose down
+```
+
 ## Compile and run the project
 
 ```bash
