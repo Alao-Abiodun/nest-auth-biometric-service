@@ -8,13 +8,22 @@ import { AuthGuard } from '@nestjs/passport';
 
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
-  canActivate(context: ExecutionContext) {
+  /**
+   * Extracts the request object from the GraphQL execution context.
+   * This is essential for Passport to access the req.user property.
+   */
+  getRequest(context: ExecutionContext) {
     const ctx = GqlExecutionContext.create(context);
-    return super.canActivate(ctx);
+    return ctx.getContext().req;
   }
 
-  handleRequest(err, user) {
+  /**
+   * Handles the authentication request.
+   * Throws an UnauthorizedException if authentication fails.
+   */
+  handleRequest(err, user, info) {
     if (err || !user) {
+      console.error('Authentication failed:', err || info);
       throw err || new UnauthorizedException('Unauthorized');
     }
     return user;

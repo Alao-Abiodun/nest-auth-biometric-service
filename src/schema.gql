@@ -8,7 +8,6 @@ input BiometricLoginInput {
 
 input BiometricSetupInput {
   biometricKey: String!
-  email: String!
 }
 
 input CreateUserInput {

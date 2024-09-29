@@ -8,6 +8,8 @@ import { UnauthorizedException, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from './guards/jwt-auth-guard';
 import { BiometricSetupInput } from './dtos/setup-biometricKey.dto';
 import { BiometricLoginInput } from './dtos/biometric-login-dto';
+import { CurrentUser } from 'src/commons/decorators/current-user.decorator';
+import { User } from '@prisma/client';
 
 @Resolver(() => UserEntity)
 export class AuthResolver {
@@ -71,11 +73,14 @@ export class AuthResolver {
    * @returns UserEntity.
    * @throws Error if user is not found or biometric key is incorrect.
    */
+  @UseGuards(JwtAuthGuard)
   @Mutation(() => UserEntity)
   async setupBiometricKey(
-    @Args('setupBiometricKey') { email, biometricKey }: BiometricSetupInput,
+    @Args('setupBiometricKey') { biometricKey }: BiometricSetupInput,
+    @CurrentUser() user: User,
   ): Promise<UserEntity> {
-    return this.authService.setupBiometricKey(email, biometricKey);
+    console.log('User:', user);
+    return this.authService.setupBiometricKey(user.email, biometricKey);
   }
 
   /**
