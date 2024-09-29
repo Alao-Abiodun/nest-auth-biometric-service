@@ -8,8 +8,6 @@ import { UnauthorizedException, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from './guards/jwt-auth-guard';
 import { BiometricSetupInput } from './dtos/setup-biometricKey.dto';
 import { BiometricLoginInput } from './dtos/biometric-login-dto';
-// import { UpdateUserInput } from './dtos/update-user.dto';
-// import { Prisma } from '@prisma/client';
 
 @Resolver(() => UserEntity)
 export class AuthResolver {
