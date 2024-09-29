@@ -8,7 +8,7 @@ This is a simple project to demonstrate how to use Prisma with NestJS. This proj
 ## Features
 - User registration
 - User login
-- Setting up user bio-metric
+- Setting up user bio-metric. **NB: You will need to set up your bio-metric key before you can login using bio-metric**
 - User bio-metric login
 
 ## Technologies
